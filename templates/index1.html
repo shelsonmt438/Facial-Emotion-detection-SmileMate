@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facial Emotion Analysis</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #video-container {
+            position: relative;
+        }
+        #video {
+            width: 100%;
+            max-width: 800px;
+            border: 2px solid #333;
+        }
+        #emotion-label {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <video id="video" autoplay playsinline></video>
+        <div id="emotion-label">Emotion: <span id="emotion"></span></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const emotionLabel = document.getElementById('emotion');
+
+        async function startVideo() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+            } catch (error) {
+                console.error('Error accessing webcam:', error);
+            }
+        }
+
+        startVideo();
+
+        const socket = new WebSocket(`ws://${window.location.host}/video_feed`);
+
+        socket.onmessage = (event) => {
+            const blob = new Blob([event.data], { type: 'image/jpeg' });
+            const imageUrl = URL.createObjectURL(blob);
+            video.src = imageUrl;
+        };
+
+        socket.onclose = () => {
+            console.log('WebSocket connection closed.');
+        };
+
+        socket.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+
+        socket.onopen = () => {
+            console.log('WebSocket connection established.');
+        };
+
+        socket.addEventListener('message', (event) => {
+            const emotion = event.data;
+            emotionLabel.textContent = emotion;
+        });
+    </script>
+</body>
+</html>
